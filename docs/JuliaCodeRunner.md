@@ -28,7 +28,7 @@ done
 ## code run in number of threads
 
 ```bash
-$ julia --project=. --threads=8 run.jl
+julia --project=. --threads=8 run.jl
 ```
 
 ## include code in REPL
