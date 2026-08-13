@@ -1,0 +1,14 @@
+# config/atm.yaml
+architecture: "CPU"
+  
+grid:
+  n_grid: 10
+  precision: "Float64"
+
+model:
+  advection: "WENO"
+  timestepper: "RK3"
+
+simulation:
+  dt: 0.01
+  stop_iteration: 1

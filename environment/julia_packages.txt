@@ -2,3 +2,5 @@ Oceananigans
 CairoMakie
 CUDA
 IJulia
+YAML
+NCDatasets

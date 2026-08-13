@@ -1,5 +1,13 @@
 # workflow/run.smk
         
+EXPERIMENT = config.get("atm", "atm")
+CONFIG_FILE = f"config/{EXPERIMENT}.yaml"
+DATA_FILE = f"data/processed/{EXPERIMENT}.nc"
+        
 rule run_simulation:
+    input:
+        config = CONFIG_FILE
+    output:
+        data = DATA_FILE
     shell:
-        "julia jets/simulation/run_simulation.jl"
+        "julia jets/simulation/run_simulation.jl {input.config} {output.data}"
