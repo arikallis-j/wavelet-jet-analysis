@@ -15,6 +15,7 @@ dependencies:
   - netcdf4
   - pyyaml
   - snakemake
+  - xarray
   - pip
   - pip:
     - -r requirements.txt

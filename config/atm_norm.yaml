@@ -1,8 +1,8 @@
-# config/atm_100.yml
+# config/atm_norm.yml
 architecture: "CPU"
   
 grid:
-  n_grid: 10
+  n_grid: 128
   precision: "Float64"
 
 model:
@@ -11,4 +11,4 @@ model:
 
 simulation:
   dt: 0.01
-  stop_iteration: 100
+  stop_iteration: 2000
