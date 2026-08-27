@@ -6,16 +6,17 @@ channels:
 dependencies:
   - python=3.11
   - julia=1.12
-  - jupyter
-  - numpy
+  - numpy=1.26.4
   - scipy
   - pandas
   - matplotlib
+  - jupyter
   - tqdm
   - netcdf4
   - pyyaml
   - snakemake
   - xarray
+  - dask
   - pip
   - pip:
     - -r requirements.txt

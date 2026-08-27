@@ -1,8 +1,9 @@
 # workflow/run.smk
         
-EXPERIMENT = config.get("atm", "atm")
-CONFIG_FILE = f"config/{EXPERIMENT}.yaml"
-DATA_FILE = f"data/processed/{EXPERIMENT}.nc"
+EXPERIMENT = config.get("experiment", "atm")
+N_EPOCH = config.get("n-epoch", 1)
+CONFIG_FILE = f"./config/{EXPERIMENT}.yaml"
+DATA_FILE = f"./data/processed/{EXPERIMENT}.nc"
         
 rule run_simulation:
     input:
@@ -10,4 +11,4 @@ rule run_simulation:
     output:
         data = DATA_FILE
     shell:
-        "julia jets/simulation/run_simulation.jl {input.config} {output.data}"
+        "python scripts/run.py --n-epoch={N_EPOCH} --experiment={EXPERIMENT}"

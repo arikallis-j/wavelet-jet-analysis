@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qgtoolbox"
+version = "0.0.0"
+description = "Wavelet analysis of zonal jets dynamics"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Slava Chernosov", email = "chernosov.w@gmail.com"},
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Oceanography",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "xarray>=2025.1.0",
+    "h5netcdf>=1.6.0",
+    "pyqg>=0.7.0",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "tqdm>=4.65",
+    "jupyter>=1.0",
+    "netCDF4>=1.6",
+    "pyyaml>=6.0",
+    "snakemake>=7.0",
+    "typer>=0.9.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["qgtoolbox"]
