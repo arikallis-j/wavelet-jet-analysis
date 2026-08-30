@@ -11,6 +11,7 @@ pyyaml>=6.0
 snakemake>=7.0
 typer>=0.9.0
 pyqg>=0.7.0
+cmocean
 xrft
 xwavelet
 -e ..

@@ -3,7 +3,7 @@ import numpy as np
 from pyqg import Smagorinsky
 from .ring_forcing import RingForcing
 
-def make_bt_model(config):
+def make_bt_model(config, log_level=3):
     # architechure parameters
     n_threads = config['architecture']['n_threads']
 
@@ -26,10 +26,7 @@ def make_bt_model(config):
     beta = config['model']['beta']
 
     # simulation parameters
-    dt, t_epoch = config['simulation']['dt'], config['simulation']['t_epoch']
-
-    # logging parameters
-    log_level, twrite = config['logging']['log_level'], config['logging']['twrite']
+    dt, t_write, t_epoch = config['simulation']['dt'], config['simulation']['t_write'], config['simulation']['t_epoch']
 
     model = pyqg.BTModel(
         L = 2*np.pi, nx=n_grid,
@@ -39,7 +36,7 @@ def make_bt_model(config):
         dt = dt, tmax = t_epoch,
         ntd = n_threads,
         log_level = log_level,
-        twrite = twrite,
+        twrite = t_write,
     )
 
     model.set_q(np.zeros((1, model.ny,model.nx)))

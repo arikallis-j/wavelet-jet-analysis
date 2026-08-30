@@ -1,0 +1,22 @@
+# config/qg-model.yaml
+architecture:
+  n_threads: 1
+
+grid:
+  n_grid: 256
+
+model:
+  rek: 0.01
+  cnu: 1.0e-5
+  af: 1.0
+  kf: 16.0
+  dkf: 2.0
+  beta: 0.0
+
+simulation:
+  dt: 0.01
+  t_epoch: 100.0
+
+logging:
+  log_level: 3
+  twrite: 1.0
