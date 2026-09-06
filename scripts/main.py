@@ -1,8 +1,7 @@
 import typer
 import qgtoolbox as qg
-import numpy as np
 
-def main(n_epoch: int = None, experiment: str = 'atm', fps: int = 10, show: bool = False, fields: str ='qv', progress: bool = False):
+def main(n_epoch: int = None, experiment: str = 'atm', time: int = -1, show: bool = False):
     dm = qg.DataManager()
     path = dm.make_experiment(experiment)
     config = qg.parse_yaml(dm.config/f"{experiment}.yaml")
@@ -11,9 +10,8 @@ def main(n_epoch: int = None, experiment: str = 'atm', fps: int = 10, show: bool
     else:
         data_path = path / f"{experiment}_{n_epoch}e"
     ds = qg.load_dataset(f"{data_path}.nc")
-    ds['v'] = np.sqrt(ds['ux']**2 + ds['uy']**2)
-    anim_path = f"{data_path}.mp4"
-    qg.draw_animation(ds, path=anim_path, fps=fps, colorbar=True, fields=list(fields), show=show, progress=progress)
+    ds = qg.calc_diganostic(ds)
+    print(ds['Eh'])
     return ds
 
 if __name__ == '__main__':
