@@ -11,8 +11,9 @@ pyyaml>=6.0
 snakemake>=7.0
 typer>=0.9.0
 pyqg>=0.7.0
+h5py
+numpy_groupies
 cmocean
 git+https://github.com/xgcm/xrft.git 
 xwavelet
 -e ..
-# -e ../lib/<libname>

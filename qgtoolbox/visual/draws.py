@@ -11,6 +11,13 @@ FIELDS = {
     'p': 'p',
     'e': 'eh',
     'E': 'Eh',
+    'X': 'Ehx',
+    'Y': 'Ehy',
+    'm': 'Em',
+    'x': 'qx',
+    'y': 'qy',
+    'k': 'vx',
+    'l': 'vy',
 }
 
 def draw_frame(t_idx, fig, axes, ds, fields=['q', 'v', 'p', 'e'], kwargs={}, colorbar=False, progress=False):
