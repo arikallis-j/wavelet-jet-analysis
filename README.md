@@ -4,6 +4,28 @@
 
 This repository contains Julia (`Oceananigans`) simulations and Python post-processing, including Fourier and wavelet analysis of zonal jet dynamics.
 
+## Basic scripts
+
+run simulation:
+```bash
+python -m scripts.run --n-epoch=1 --experiment=iso-atm --save-mode=a
+```
+
+check dataset:
+```bash
+python -m scripts.help --n-epoch=1 --experiment=iso-atm --short
+```
+
+check one snapshot:
+```bash
+python -m scripts.check --n-epoch=1 --experiment=iso-atm --time=-1 --fields=pqv --show
+```
+
+make animation:
+```bash
+python -m scripts.animate --n-epoch=1 --experiment=iso-atm --fields=pqv --progress
+```
+
 ## Setup enviroment
 
 Create conda enviroment:

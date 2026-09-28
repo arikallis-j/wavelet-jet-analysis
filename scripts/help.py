@@ -12,7 +12,6 @@ def main(n_epoch: int = None, experiment: str = 'atm', short: bool = False):
     ds = qg.load_dataset(f"{data_path}.nc")
     ds = qg.calc_diganostic(ds)
 
-    print(ds['q'])
     if short:
         ds.info()
     else:

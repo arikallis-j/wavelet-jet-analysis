@@ -33,17 +33,22 @@ def run_epoch(model, path = None, config = None):
         epoch.to_netcdf(path, engine="h5netcdf")
     return epoch
 
-def run_simulation(model, n_epoch: int = 1, path = None, config = None):
+def run_simulation(model, n_epoch: int = 1, path = None, config = None, save_mode = 'a'):
     epochs = []
     t_epoch = model.tmax
     for k in tqdm(range(n_epoch), desc="epoch"):
         epoch = run_epoch(model, path=epoch_path(path, k+1), config=config)
         epochs.append(epoch)
         model.tmax += t_epoch
-    sim = xr.concat(epochs, dim='time', data_vars='all')
-    if path is not None:
-        sim.to_netcdf(path, engine="h5netcdf")
-    return sim
+    if save_mode == 'a':
+        sim = xr.concat(epochs, dim='time', data_vars='all')
+        if path is not None:
+            sim.to_netcdf(path, engine="h5netcdf")
+        return sim
+    elif save_mode == 'e':
+        return epochs
+    else:
+        return None
 
 def load_simulation(path, n_epoch: int = 1):
     epochs = []
