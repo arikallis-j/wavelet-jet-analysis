@@ -16,7 +16,7 @@ numpy_groupies
 cmocean
 PyWavelets
 git+https://github.com/xgcm/xrft.git 
--e ..
 -e ../lib/xwavelet
+-e ..
 # git+https://github.com/roxyboy/xwavelet.git
 # xwavelet
