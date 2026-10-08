@@ -3,4 +3,4 @@ __pycache__/
 *.nc
 data/processed/
 data/raw/
-.vscode
+.vscode/
