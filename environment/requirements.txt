@@ -15,7 +15,7 @@ h5py
 numpy_groupies
 cmocean
 git+https://github.com/xgcm/xrft.git 
-# git+https://github.com/roxyboy/xwavelet.git
-# xwavelet
 -e ..
 -e ../lib/xwavelet
+# git+https://github.com/roxyboy/xwavelet.git
+# xwavelet

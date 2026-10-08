@@ -3,110 +3,214 @@ import qgtoolbox as qg
 import xarray as xr
 import numpy as np
 import xrft
-import xwavelet.wavelet as xwl # cwt, cwt2, power_spectrum, cross_spectrum
+import xwavelet.wavelet as xwl
 import matplotlib.pyplot as plt
-from scipy.interpolate import griddata
-
 import cmocean.cm as cmo
+import pywt
 
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, Normalize
 from tqdm import tqdm
 
-# Ea = xwl.power_spectrum(da, scale, dim=['y', 'x'], x0=x0, ntheta=ntheta, normalize=False)
+from scipy.signal import find_peaks
 
-def main(n_epoch: int = None, experiment: str = 'atm', time: int = -1, show: bool = False, nwl: int = 10):
+
+def main(n_epoch: int = None, experiment: str = 'atm', time: int = -1, show: bool = False, n_jets: int = 3, wtype: str = 'haar'):
     dm = qg.DataManager()
     path = dm.make_experiment(experiment)
     config = qg.parse_yaml(dm.config/f"{experiment}.yaml")
     if n_epoch is None:
+        n_epoch = 10
         data_path = path / f"{experiment}"
     else:
         data_path = path / f"{experiment}_{n_epoch}e"
-    ds = qg.load_dataset(f"{data_path}.nc")
-    ds = qg.calc_diganostic(ds)
-
-    ds = ds.isel(time=time)
-
-    n_scale, n_theta, n_gamma = nwl, 2 * nwl, nwl
-    n_grid = ds.attrs['grid.n_grid']
-    dl = ds.x.values[1] - ds.x.values[0]
-    L = 2*np.pi 
-    x0 = dl
-    s_vals = 1 / np.linspace(1/n_grid, 1, n_scale)
-    s_vals = np.geomspace(2.0, n_grid, n_scale)
-    scale = xr.DataArray(s_vals, dims=["s"], coords={"s": s_vals})
-    gamma_0 = np.array([-ds.x.mean().values, -ds.y.mean().values])
-
-    # da = ds.q.isel(time=time)
-    # Wa = xwl.cwt2(da, scale, dim=['y', 'x'], x0=x0, gamma=gamma, ntheta=n_theta, wtype=wtype)
-    # Ea = np.abs(Wa)**2 / Wa["s"] * x0**2
-
-    # wtype = 'smorlet'
-
-    # gamma_x, gamma_y = L/2, L/2
-    # gamma_0 = np.array([-ds.x.mean().values, -ds.y.mean().values])
-    # gamma = np.array([gamma_x, gamma_y]) + gamma_0
     
-    # dax = ds.ux
-    # Wax = xwl.cwt2(dax, scale, dim=['y', 'x'], x0=x0, gamma=gamma, ntheta=n_theta, wtype=wtype)
-    # Eax = np.abs(Wax)**2 / Wax["s"] * x0**2
-    
-    # day = ds.uy
-    # Way = xwl.cwt2(day, scale, dim=['y', 'x'], x0=x0, gamma=gamma, ntheta=n_theta, wtype=wtype)
-    # Eay = np.abs(Way)**2 / Way["s"] * x0**2
+    # ds = qg.load_dataset(f"{data_path}.nc")
+    ds = qg.calc_diganostic(ds, n_jets = n_jets, wtype = wtype)
+    # print(ds.time)
+    # ds = ds.isel(time=[time])
+    # print(ds)
+    # dx = ds.x.values[1] - ds.x.values[0]
+    # n_grid = ds.attrs['grid.n_grid']
+    # levels = ds.attrs['grid.n_lev']
 
-    # Ea = Eax + Eay
+    # x = ds.x.values
+    # y = ds.y.values
 
-    # k = 2 * np.pi / Ea["s"]
-    # theta = Ea["angle"]
-    # azimut = theta - np.pi/2
+    # n_jets = 3
+    # x0_idx = 128
 
-    # eh = Ea.T.values
-    # Eh = np.abs(Ea.values).max()
-    # norm = LogNorm(vmin=1e-6, vmax=1e1)
-    # plt.pcolormesh(azimut, k, eh/Eh, cmap='cmo.dense', norm=norm)
-    # plt.yscale('log')
-    # plt.colorbar()
-    # plt.tight_layout()
+    # V = np.abs(ds.ux).max().values
+    # vx = ds.ux.isel(time=time, x=x0_idx).values / V
+
+    # vx_periodic = np.concatenate([vx, vx])
+    # peaks_idx, _ = find_peaks(vx_periodic, distance=n_grid//(2*n_jets))
+    # peaks_idx = peaks_idx[peaks_idx < n_grid]
+    # y_jets_idx = peaks_idx[np.argsort(vx[peaks_idx])[::-1][:n_jets]]
+    # print(y_jets_idx)
+
+    # avx_periodic = np.concatenate([-vx, -vx])
+    # peaks_idx, _ = find_peaks(avx_periodic, distance=n_grid//(2*n_jets))
+    # peaks_idx = peaks_idx[peaks_idx < n_grid]
+    # y_ajets_idx = peaks_idx[np.argsort(-vx[peaks_idx])[::-1][:n_jets]]
+    # print(y_ajets_idx)
+
+    # fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+
+    # for i, idx in enumerate(y_jets_idx):
+    #     ew_jet = ds.ew.isel(time=time, x=x0_idx, y=idx).values
+    #     k_jet = n_grid / ds.s.values 
+    #     axes[0, i].loglog(k_jet, ew_jet)
+    #     axes[0, i].set_title(f'Jet y={y[idx]:.2f}')
+
+    # for i, idx in enumerate(y_ajets_idx):
+    #     ew_ajet = ds.ew.isel(time=time, x=x0_idx, y=idx).values
+    #     k_jet = n_grid / ds.s.values 
+    #     axes[1, i].loglog(k_jet, ew_ajet)
+    #     axes[1, i].set_title(f'Anti-jet y={y[idx]:.2f}')
+
     # plt.show()
 
-    wtype = 'imorlet'
+    # x0_idx = 128 + 1
 
-    gamma_x_vals = np.linspace(0, L, n_gamma, endpoint=False)
-    gamma_y_vals = np.linspace(0, L, n_gamma, endpoint=False)
+    # y_jet = ds.y_jet.isel(time=time)   # (n_jets, n_x)
+    # y_ajet = ds.y_ajet.isel(time=time)
 
-    Ea_x_list = []
-    for gamma_x in tqdm(gamma_x_vals):
-        Ea_y_list = []
-        for gamma_y in gamma_y_vals:
-            gamma = np.array([gamma_x, gamma_y]) + gamma_0
+    # ew = ds.ew.isel(time=time)  # (n_scales, n_y, n_x)
 
-            Wax = xwl.cwt2(ds.ux, scale, dim=['y', 'x'], x0=x0, gamma=gamma, wtype=wtype)
-            Eax = np.abs(Wax)**2 / Wax["s"] * x0**2
+    # ew_jets = ew.sel(y=y_jet, method='nearest')   # (n_scales, n_jets, n_x)
+    # ew_ajets = ew.sel(y=y_ajet, method='nearest')
 
-            Way = xwl.cwt2(ds.uy, scale, dim=['y', 'x'], x0=x0, gamma=gamma, wtype=wtype)
-            Eay = np.abs(Way)**2 / Way["s"] * x0**2
+    # ew_jets_mean = ew_jets.mean(dim=['x','k_jet'])  # (n_scales, n_jets)
+    # ew_ajets_mean = ew_ajets.mean(dim=['x','k_jet'])
 
-            Ea_y_list.append(Eax + Eay)
+    # print(ew_jets)
+    # print(ew_jets_mean)
 
-        Ea_x_list.append(xr.concat(Ea_y_list, dim=xr.DataArray(gamma_y_vals, dims=["gamma_y"])))
+    # fig, axis = plt.subplots(figsize=(8, 8))
 
-    Ea = xr.concat(Ea_x_list, dim=xr.DataArray(gamma_x_vals, dims=["gamma_x"]))
+    # k_freq = n_grid / ds.s.values 
+    # axis.loglog(k_freq, ew_jets_mean.values, label='Jet', color=qg.BLUE)
+    # axis.loglog(k_freq, ew_ajets_mean.values, label='Anti-jet', color=qg.RED)
+    # axis.legend()
+    # plt.show()
+
+    # # x0 = ds.x.values[1] - ds.x.values[0]
+    # # levels = xwl.swt_max_level(n_grid)
+    # # wtype = 'haar'
+
+
+    # # Wax = xwl.swt2(ds.ux, levels=levels, wtype=wtype)
+    # # Eax = Wax['cH']**2 + Wax['cV']**2 + Wax['cD']**2
+
+    # # Way = xwl.swt2(ds.uy, levels=levels, wtype=wtype)
+    # # Eay = Way['cH']**2 + Way['cV']**2 + Way['cD']**2
+
+    # # Ea = Eax + Eay
+    # # # print(Ea)
+
+    # # AHa = (Wax['cH']**2 + Way['cH']**2) / Ea
+    # # # AVa = (Wax['cV']**2 + Way['cV']**2) / Ea
+    # # # ADa = (Wax['cD']**2 + Way['cD']**2) / Ea
     
-    print(Ea)
-    Ea = Ea.mean(dim="gamma_x")
+    # # Ea = ds.ew.isel(time=time)
+    # # gamma_x, gamma_y = Ea["x"], Ea["y"]
 
-    k = 2 * np.pi / Ea["s"]
-    gamma_y = Ea["gamma_y"]
+    # # qg.draw_snapshot(ds, time, path = path / "img", show=show, fields=['ew'])
 
-    eh = Ea.T.values
-    Eh = np.abs(Ea.values).max()
-    norm = LogNorm(vmin=1e-6, vmax=1e1)
-    plt.pcolormesh(gamma_y, k, eh/Eh, cmap='cmo.dense', norm=norm)
-    plt.yscale('log')
-    plt.colorbar()
-    plt.tight_layout()
-    plt.show()
+    # # for j in range(1, levels+1):
+    # #     Ea_j = Ea.isel(s=j-1)
+    # #     k = n_grid / Ea_j["s"]
+    # #     eh = Ea_j.values
+    # #     Eh = np.abs(Ea_j.values).max()
+    # #     norm = LogNorm(vmin=1e-6, vmax=1e1)
+
+    # #     fig, axis = plt.subplots()
+    # #     fig.suptitle(f"Time t = {Ea_j.time:.1f} | Octave j = {j}")
+    # #     mesh = qg.plot_swt_field(ds, axis, t_idx=time, j=j)
+    # #     fig.colorbar(mesh, ax=axis)
+    # #     fig.tight_layout()
+    # #     if path is not None:
+    # #         fig.savefig( path / "img" / f"e{j}", dpi=150)
+    # #     if show:
+    # #         plt.show()
+    # #     plt.close()
+
+    # # AHa = AHa.isel(time=time)
+    # # gamma_x, gamma_y = AHa["x"], AHa["y"]
+
+    # # for j in range(1, levels+1):
+    # #     Ea_j = AHa.isel(s=j-1)
+    # #     k = 2 * np.pi / (Ea_j["s"] * x0)
+    # #     eh = Ea_j.values
+    # #     Eh = 1.0
+    # #     norm = Normalize(vmin=0.0, vmax=1.0)
+
+    # #     fig, axis = plt.subplots()
+    # #     fig.suptitle(f"Time t = {Ea_j.time:.1f} | Octave j = {j}")
+    # #     mesh = axis.pcolormesh(gamma_x, gamma_y, eh/Eh, cmap='cmo.deep_r', norm=norm)
+    # #     axis.set_title(f'Anisotropy Horizontal $e_j(x, y)$ | $ E_j = {Eh:.1e}, k_j = {k.values:.0f}$')
+    # #     axis.set_aspect('equal')
+    # #     axis.set_xlabel('X')
+    # #     axis.set_ylabel('Y')
+    # #     fig.colorbar(mesh, ax=axis)
+    # #     fig.tight_layout()
+    # #     if path is not None:
+    # #         fig.savefig( path / "img" / f"ah{j}", dpi=150)
+    # #     if show:
+    # #         plt.show()
+    # #     plt.close()
+
+    # # AVa = AVa.isel(time=time)
+    # # gamma_x, gamma_y = AVa["x"], AVa["y"]
+
+    # # for j in range(1, levels+1):
+    # #     Ea_j = AVa.isel(s=j-1)
+    # #     k = 2 * np.pi / (Ea_j["s"] * x0)
+    # #     eh = Ea_j.values
+    # #     Eh = 1.0
+    # #     norm = Normalize(vmin=0.0, vmax=1.0)
+
+    # #     fig, axis = plt.subplots()
+    # #     fig.suptitle(f"Time t = {Ea_j.time:.1f} | Octave j = {j}")
+    # #     mesh = axis.pcolormesh(gamma_x, gamma_y, eh/Eh, cmap='cmo.deep_r', norm=norm)
+    # #     axis.set_title(f'Anisotropy Vertical $e_j(x, y)$ | $ E_j = {Eh:.1e}, k_j = {k.values:.0f}$')
+    # #     axis.set_aspect('equal')
+    # #     axis.set_xlabel('X')
+    # #     axis.set_ylabel('Y')
+    # #     fig.colorbar(mesh, ax=axis)
+    # #     fig.tight_layout()
+    # #     if path is not None:
+    # #         fig.savefig( path / "img" / f"av{j}", dpi=150)
+    # #     if show:
+    # #         plt.show()
+    # #     plt.close()
+
+
+    # # ADa = ADa.isel(time=time)
+    # # gamma_x, gamma_y = ADa["x"], ADa["y"]
+
+    # # for j in range(1, levels+1):
+    # #     Ea_j = ADa.isel(s=j-1)
+    # #     k = 2 * np.pi / (Ea_j["s"] * x0)
+    # #     eh = Ea_j.values
+    # #     Eh = 1.0
+    # #     norm = Normalize(vmin=0.0, vmax=1.0)
+
+    # #     fig, axis = plt.subplots()
+    # #     fig.suptitle(f"Time t = {Ea_j.time:.1f} | Octave j = {j}")
+    # #     mesh = axis.pcolormesh(gamma_x, gamma_y, eh/Eh, cmap='cmo.deep_r', norm=norm)
+    # #     axis.set_title(f'Anisotropy Diagonal $e_j(x, y)$ | $ E_j = {Eh:.1e}, k_j = {k.values:.0f}$')
+    # #     axis.set_aspect('equal')
+    # #     axis.set_xlabel('X')
+    # #     axis.set_ylabel('Y')
+    # #     fig.colorbar(mesh, ax=axis)
+    # #     fig.tight_layout()
+    # #     if path is not None:
+    # #         fig.savefig( path / "img" / f"ad{j}", dpi=150)
+    # #     if show:
+    # #         plt.show()
+    # #     plt.close()
+
 
     return ds
 

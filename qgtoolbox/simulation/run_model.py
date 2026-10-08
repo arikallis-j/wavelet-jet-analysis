@@ -50,9 +50,9 @@ def run_simulation(model, n_epoch: int = 1, path = None, config = None, save_mod
     else:
         return None
 
-def load_simulation(path, n_epoch: int = 1):
+def load_simulation(path, n_epoch: int = 1, k_epoch: int = 1):
     epochs = []
-    for k in range(n_epoch):
-        with xr.open_dataset(epoch_path(path, k+1), engine="h5netcdf") as data:
+    for k in range(k_epoch, k_epoch+n_epoch):
+        with xr.open_dataset(epoch_path(path, k), engine="h5netcdf") as data:
             epochs.append(data.load())
     return xr.concat(epochs, dim='time', data_vars='all')
