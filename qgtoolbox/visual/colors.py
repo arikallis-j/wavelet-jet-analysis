@@ -28,12 +28,4 @@ CMOCEAN = {
 YELLOW = '#ffff99'
 GREEN = '#7fc87f'
 BLUE = '#385eb1'
-
-names = {
-    'q': 'Potential Vorticity $q$',
-    'omega': 'Vorticity $\\omega$',
-    'psi': 'Stream Function $\\psi$',
-    'v': 'Absolute Velocity $|u|$',
-    'ux': 'X-axis Velocity $u_x$',
-    'uy': 'Y-axis Velocity $u_y$',
-}
+RED = '#e04c4c'

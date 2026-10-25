@@ -132,7 +132,7 @@ def _shift_morlet2(x0, ntheta, a, s, y, x, gamma, **kwargs):
     gamma_x, gamma_y = gamma
 
     # compute morlet wavelet
-    th = np.arange(int(ntheta / 2)) * 2.0 * np.pi / ntheta
+    th = np.arange(int(ntheta/2)) * 2.0 * np.pi / ntheta
     th = xr.DataArray(th, dims=["angle"], coords={"angle": th})
 
     if "angle" in kwargs:
@@ -141,8 +141,15 @@ def _shift_morlet2(x0, ntheta, a, s, y, x, gamma, **kwargs):
             th = th.chunk(chunk)
 
     # shifted positions
-    dy = y - gamma_y
+    Lx = x[-1] - x[0] + (x[1] - x[0])  # полная длина домена
+    Ly = y[-1] - y[0] + (y[1] - y[0])
+
     dx = x - gamma_x
+    dy = y - gamma_y
+
+    # минимальное расстояние на торе
+    dx = dx - Lx * np.round(dx / Lx)
+    dy = dy - Ly * np.round(dy / Ly)
 
     # rotated positions
     yp = np.sin(th) * s**-1 * dy
@@ -150,7 +157,6 @@ def _shift_morlet2(x0, ntheta, a, s, y, x, gamma, **kwargs):
 
     arg1 = 2j * np.pi * k0 * (yp - xp)
     arg2 = -(dx**2 + dy**2) / 2 / s**2 / x0**2
-
     m = a * np.exp(arg1) * np.exp(arg2)
 
     return m, th
@@ -276,7 +282,7 @@ def cwt(
     return dawt
 
 
-def cwt2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="morlet", **kwargs):
+def cwt2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="morlet", center=True, **kwargs):
     r"""
     Compute continuous two-dimensional wavelet transform of da. Default is the Morlet wavelet.
     Scale :math:`s` is dimensionless.
@@ -325,8 +331,12 @@ def cwt2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="morlet"
     delta_x = _delta(da, dim)
 
     # grid parameters
-    y = da[da.dims[axis_num[-2]]] - da[da.dims[axis_num[-2]]].mean()
-    x = da[da.dims[axis_num[-1]]] - da[da.dims[axis_num[-1]]].mean()
+    if center:
+        y = da[da.dims[axis_num[-2]]] - da[da.dims[axis_num[-2]]].mean()
+        x = da[da.dims[axis_num[-1]]] - da[da.dims[axis_num[-1]]].mean()
+    else:
+        y = da[da.dims[axis_num[-2]]]
+        x = da[da.dims[axis_num[-1]]]
 
     if wtype == "morlet":
         wavelet, phi = _morlet2(x0, ntheta, a, s, y, x, **kwargs)
@@ -343,7 +353,7 @@ def cwt2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="morlet"
 
     return dawt
 
-def cwt2_field(da, s, dim=None, x0=50e3, a=1.0, wtype="imorlet", n_gamma=10,**kwargs):
+def cwt2_field(da, s, dim=None, x0=50e3, a=1.0, wtype="imorlet", n_gamma=10, gamma_idx=0, direction='x',  ntheta=4, **kwargs):
     if dim is None:
         dim = list(da.dims)
     else:
@@ -361,23 +371,59 @@ def cwt2_field(da, s, dim=None, x0=50e3, a=1.0, wtype="imorlet", n_gamma=10,**kw
     sdim = s.dims[0]
     rows = []
 
-    for gy_val in tqdm(y.values[:n_gamma:]):
-        cols = []
-        for gx_val in x.values[:n_gamma:]:
+    # for gy_val in tqdm(y.values[:n_gamma:]):
+    #     cols = []
+    #     for gx_val in x.values[:n_gamma:]:
+    #         gamma = (float(gx_val), float(gy_val))
+    #         wavelet, _ = _iso_morlet2(x0, a, s, y, x, gamma=gamma)
+    #         dawt = (da * np.conj(wavelet)).sum(dim, skipna=True) * np.prod(delta_x) / s
+    #         cols.append(dawt)
+
+    #     row = xr.concat(cols, dim=x.isel(x=range(n_gamma)).rename({"x": "gx"}))
+    #     rows.append(row)
+    n_grid = len(y.values)
+    step = int(np.ceil(n_grid / n_gamma))
+    points = np.round(np.linspace(0, len(y.values) - 1, n_gamma)).astype(int)
+    if direction == 'x':
+        for gy_val in tqdm(y.values[points]):
+            cols = []
+            gx_val = x.values[gamma_idx]
             gamma = (float(gx_val), float(gy_val))
             wavelet, _ = _iso_morlet2(x0, a, s, y, x, gamma=gamma)
-            
+            if wtype == "imorlet":
+                wavelet, phi = _iso_morlet2(x0, a, s, y, x, gamma=gamma, **kwargs)
+            elif wtype == "smorlet":
+                wavelet, phi = _shift_morlet2(x0, ntheta, a, s, y, x, gamma=gamma, **kwargs)
             dawt = (da * np.conj(wavelet)).sum(dim, skipna=True) * np.prod(delta_x) / s
-            
             cols.append(dawt)
+            row = xr.concat(cols, dim=x.isel(x=[gamma_idx]))#.rename({"x": "gx"}))
+            rows.append(row)
+        result = xr.concat(rows, dim=y.isel(y=points))#.rename({"y": "gy"}))
 
-        
-        row = xr.concat(cols, dim=x.isel(x=range(n_gamma)).rename({"x": "gx"}))
+    elif direction == 'y':
+        gy_val = y.values[gamma_idx]
+        cols = []
+        for gx_val in tqdm(x.values[points]):
+            gamma = (float(gx_val), float(gy_val))
+            if wtype == "imorlet":
+                wavelet, phi = _iso_morlet2(x0, a, s, y, x, gamma=gamma, **kwargs)
+            elif wtype == "smorlet":
+                wavelet, phi = _shift_morlet2(x0, ntheta, a, s, y, x, gamma=gamma, **kwargs)
+            dawt = (da * np.conj(wavelet)).sum(dim, skipna=True) * np.prod(delta_x) / s
+            cols.append(dawt)
+        row = xr.concat(cols, dim=x.isel(x=points))
         rows.append(row)
-        
-    result = xr.concat(rows, dim=y.isel(y=range(n_gamma)).rename({"y": "gy"}))
+        result = xr.concat(rows, dim=y.isel(y=[gamma_idx]))
+
+    else:
+        raise Warning(f"There is no implementation of {direction} direction")
+    
     result = result.drop_vars(sdim)
     result[sdim] = x0 * s
+    if wtype == "imorlet":
+        result = result.transpose('time', 'y', 'x', 's')
+    elif wtype == "smorlet":
+        result = result.transpose('time', 'y', 'x', 's', 'angle')
 
     return result
 

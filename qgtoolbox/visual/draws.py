@@ -9,21 +9,26 @@ from .plots import PLOTS, PLOTS_COLORBAR, FIELDS
 def draw_frame(t_idx, fig, axes, ds, fields=['q', 'v', 'p', 'e'], kwargs={}, colorbar=False, progress=False):
     if progress:
         print(f"iter: {t_idx+1}/{len(ds.time)}")
-    artists = []
+    artists = [] 
+    if 'ew' not in kwargs.keys():
+        kwargs['ew'] = {}
     kwargs['ew']['swt'] = 0
-    fig.suptitle(f"Time t = {ds.time[t_idx]:.1f}")
+    if t_idx is not None:
+        fig.suptitle(f"Time t = {ds.time[t_idx]:.1f}")
+    else:
+        fig.suptitle(f"Time t = [{ds.time[0]:.1f}, {ds.time[-1]:.1f}]")
     for ax, name in zip(axes.flat, fields):
         ax.clear()
-        artist = PLOTS[name](ds, ax, t_idx, **kwargs.get(name, {}))
-        if colorbar and PLOTS_COLORBAR[name]:
+        artist = PLOTS[FIELDS[name]](ds, ax, t_idx, **kwargs.get(FIELDS[name], {}))
+        if colorbar and PLOTS_COLORBAR[FIELDS[name]]:
             fig.colorbar(artist, ax=ax, shrink=0.8, format='{x:+.1f}')
         artists.append(artist)
-        if name == 'ew':
+        if FIELDS[name] == 'ew':
             kwargs['ew']['swt'] += 1
     
     return artists
 
-def draw_snapshot(ds, t, path = None, show=True, fields=['q', 'v', 'p', 'e'], kwargs={}, colorbar=False, size=5):
+def draw_snapshot(ds, t_idx, path = None, show=True, fields=['q', 'v', 'p', 'e'], kwargs={}, colorbar=False, size=5):
     n_fields = len(fields)
     if n_fields%3 == 0 and n_fields!=3:
         fig, axes = plt.subplots(3, n_fields//3, figsize=(size*n_fields//3, size*3))
@@ -34,7 +39,7 @@ def draw_snapshot(ds, t, path = None, show=True, fields=['q', 'v', 'p', 'e'], kw
         
     if n_fields == 1:
         axes = np.array(axes)
-    draw_frame(t, fig, axes, ds, fields=fields, kwargs=kwargs, colorbar=colorbar)
+    draw_frame(t_idx, fig, axes, ds, fields=fields, kwargs=kwargs, colorbar=colorbar)
     fig.tight_layout()
     if path is not None:
         fig.savefig(path, dpi=150)

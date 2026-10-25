@@ -1,0 +1,45 @@
+- config/
+- - sim.yaml
+- - ...
+- data/
+- - processed/
+- - raw/
+- docs/ 
+- - TODO.md
+- - structure.md
+- - julia/
+- - - ...
+- environment/
+- - backup/
+- - - ...
+- - conda_env.yaml
+- - requirements.txt
+- - julia_packages.txt
+- lib/
+- - xwavelet/
+- - - xwavelet/
+- - - - wavelet.py
+- - - - ...
+- - - ...
+- qgtoolbox/
+- - simulation/
+- - - bt_model.py
+- - - ring_forcing.py
+- - - run_model.py
+- - utils/
+- - - io.py
+- - analysis/
+- - - diagnostics.py
+- - visual/
+- - - cmaps.py
+- - - plots.py
+- - - draws.py
+- scripts/
+- - run.py
+- - check.py
+- - animate.py
+- - help.py
+- .gitignore
+- LICENSE
+- pyproject.toml
+- README.md
