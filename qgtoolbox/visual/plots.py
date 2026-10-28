@@ -62,7 +62,7 @@ def plot_absolute_velocity(ds, axis, t_idx, cmap='cmo.speed', levels=50):
     axis.set_ylabel('Y')
     return cf
 
-def plot_zonal_velocity(ds, axis, t_idx, cmap='cmo.balance', levels=50):
+def plot_zonal_velocity(ds, axis, t_idx, x0 = None, y0 = None, cmap='cmo.balance', levels=50):
     x = ds.x.values
     y = ds.y.values
     if t_idx is None:
@@ -74,6 +74,11 @@ def plot_zonal_velocity(ds, axis, t_idx, cmap='cmo.balance', levels=50):
 
     scale = np.linspace(-1, +1, levels)
     cf = axis.contourf(x, y, ux/V, cmap=cmap, levels=scale)
+    if x0 is not None:
+        axis.axvline(x[x0], color='grey', linestyle='--')
+    if y0 is not None:
+        axis.axhline(y[y0], color='grey', linestyle='--')
+
     axis.set_title(f'Zonal Velocity $u_x$, | $V = {V:.1e}$')
     axis.set_xlabel('X')
     axis.set_ylabel('Y')
@@ -147,10 +152,8 @@ def plot_enstrophy_field(ds, axis, t_idx, cmap='cmo.deep', levels=50):
     axis.set_ylabel('Y')
     return cf
 
-def plot_x_velocity(ds, axis, t_idx, color=BLUE):
+def plot_x_velocity(ds, axis, t_idx, y0 = 0, color=BLUE):
     n_grid = len(ds.x.values)
-    n_jets = 3
-    y0 = 0
     x = ds.x.values
     y = ds.y.values
     uy = ds.uy.isel(time=t_idx)
@@ -171,34 +174,18 @@ def plot_x_velocity(ds, axis, t_idx, color=BLUE):
     return plot
 
 
-def plot_y_velocity(ds, axis, t_idx, color=BLUE):
+def plot_y_velocity(ds, axis, t_idx, x0 = 0, color=BLUE):
     n_grid = len(ds.x.values)
-    n_jets = 3
-    x0 = 0
     y = ds.y.values
     ux = ds.ux.isel(time=t_idx)
     ux = ux.isel(x=x0)
     V = np.abs(ds.v).max().values
     vx = ux/V
 
-    # vx_periodic = np.concatenate([vx, vx])
-    # peaks_idx, _ = find_peaks(vx_periodic, distance=n_grid//(2*n_jets))
-    # peaks_idx = peaks_idx[peaks_idx < n_grid]
-    # jets_idx = peaks_idx[np.argsort(vx[peaks_idx])[::-1][:n_jets]]
-
-    # avx_periodic = np.concatenate([-vx, -vx])
-    # peaks_idx, _ = find_peaks(avx_periodic, distance=n_grid//(2*n_jets))
-    # peaks_idx = peaks_idx[peaks_idx < n_grid]
-    # ajets_idx = peaks_idx[np.argsort(-vx[peaks_idx])[::-1][:n_jets]]
-
     plot = axis.plot(vx, y, color='black', lw=0.5)
     axis.fill_betweenx(y, 0, vx, where=(vx > 0), color='red', alpha=0.5)
     axis.fill_betweenx(y, 0, vx, where=(vx < 0), color='blue', alpha=0.5)
     axis.axvline(0.0, color='black', linestyle='--', label='zero')
-    # for jet_idx in jets_idx:
-    #     axis.axhline(y[jet_idx], color='red', linestyle='--', label='jets', alpha=0.5)
-    # for ajet_idx in ajets_idx:
-    #     axis.axhline(y[ajet_idx], color='blue', linestyle='--', label='ajets', alpha=0.5)
 
     axis.set_title(f'Velocity Along X axis $v_x$ | $V = {V:.1e}$')
     axis.set_xlabel('$x$')

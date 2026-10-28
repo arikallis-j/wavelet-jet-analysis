@@ -161,11 +161,56 @@ def _shift_morlet2(x0, ntheta, a, s, y, x, gamma, **kwargs):
 
     return m, th
 
-def _iso_morlet2(x0, a, s, y, x, gamma, **kwargs):
+def _fourier2(x0, ntheta, a, s, y, x, **kwargs):
+    r"""
+    Define
+
+    .. math::
+        \psi = a e^{-2\pi i \boldmath{k}_0 \cdot\boldmath{x}} e^{-\frac{\boldmath{x} \cdot \boldmath{x}}{2 x_0^2}}
+
+    as the morlet wavelet. Its transform is
+
+    .. math::
+        \psi_h = a 2\pi x_0^2 e^{-2 \pi^2 (\boldmath{k}-\boldmath{k}_0)^2 x_0^2}
+
+    Units of :math:`a` are :math:`L^{-2}`.
+    :math:`k_0` is defaulted to :math:`1/x_0` in the zonal direction.
+    """
+
+    k0 = 1.0 / x0
+
+    # compute morlet wavelet
+    th = np.arange(int(ntheta / 2)) * 2.0 * np.pi / ntheta
+    th = xr.DataArray(th, dims=["angle"], coords={"angle": th})
+
+    if "angle" in kwargs:
+        for k, v in kwargs.items():
+            chunk = {k: v}
+            th = th.chunk(chunk)
+
+    # rotated positions
+    yp = np.sin(th) * s**-1 * y
+    xp = np.cos(th) * s**-1 * x
+
+    arg1 = 2j * np.pi * k0 * (yp - xp)
+    m = a * np.exp(arg1)
+
+    return m, th
+
+def _shift_fourier2(x0, ntheta, a, s, y, x, gamma, **kwargs):
+    k0 = 1.0 / x0
     gamma_x, gamma_y = gamma
 
-    # shifted positions
+    # compute morlet wavelet
+    th = np.arange(int(ntheta/2)) * 2.0 * np.pi / ntheta
+    th = xr.DataArray(th, dims=["angle"], coords={"angle": th})
 
+    if "angle" in kwargs:
+        for k, v in kwargs.items():
+            chunk = {k: v}
+            th = th.chunk(chunk)
+
+    # shifted positions
     Lx = x[-1] - x[0] + (x[1] - x[0])  # полная длина домена
     Ly = y[-1] - y[0] + (y[1] - y[0])
 
@@ -176,13 +221,14 @@ def _iso_morlet2(x0, a, s, y, x, gamma, **kwargs):
     dx = dx - Lx * np.round(dx / Lx)
     dy = dy - Ly * np.round(dy / Ly)
 
-    r2 = dx**2 + dy**2
-    r = np.sqrt(r2)
-    arg1 = 2 * np.pi * r / (s * x0)
-    arg2 = -r2 / 2 / s**2 / x0**2
-    m = a * j0(arg1) * np.exp(arg2)
+    # rotated positions
+    yp = np.sin(th) * s**-1 * dy
+    xp = np.cos(th) * s**-1 * dx
 
-    return m, None
+    arg1 = 2j * np.pi * k0 * (yp - xp)
+    m = a * np.exp(arg1)
+
+    return m, th
 
 
 
@@ -342,8 +388,6 @@ def cwt2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="morlet"
         wavelet, phi = _morlet2(x0, ntheta, a, s, y, x, **kwargs)
     elif wtype == "smorlet":
         wavelet, phi = _shift_morlet2(x0, ntheta, a, s, y, x, gamma, **kwargs)
-    elif wtype == "imorlet":
-        wavelet, phi = _iso_morlet2(x0, a, s, y, x, gamma, **kwargs)
     else:
         raise NotImplementedError("Only the Morlet wavelet is implemented for now.")
 
@@ -352,6 +396,8 @@ def cwt2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="morlet"
     dawt[sdim] = x0 * s
 
     return dawt
+
+
 
 def cwt2_field(da, s, dim=None, x0=50e3, a=1.0, wtype="imorlet", n_gamma=10, gamma_idx=0, direction='x',  ntheta=4, **kwargs):
     if dim is None:
@@ -427,6 +473,8 @@ def cwt2_field(da, s, dim=None, x0=50e3, a=1.0, wtype="imorlet", n_gamma=10, gam
 
     return result
 
+
+
 def swt2(da, levels, wtype='haar', norm=True, dim=['y', 'x'], **kwargs):
     if dim is None:
         dim = list(da.dims)
@@ -470,6 +518,76 @@ def swt_max_level(n_grid):
     # levels = int(np.floor(np.log(n_grid)/np.log(2)))
     levels = pywt.swt_max_level(n_grid)
     return levels
+
+
+def cft2(da, s, dim=None, x0=50e3, a=1.0, ntheta=16, gamma=(0,0), wtype="fourier", center=True, **kwargs):
+    r"""
+    Compute continuous two-dimensional fourier transform of da.
+    Scale :math:`s` is dimensionless.
+
+    Parameters
+    ----------
+    da : `xarray.DataArray`
+        The data to be transformed.
+    s : `xarray.DataArray`
+        One-dimensional array with scaling parameter.
+    dim : str or sequence of str, optional
+        The dimensions along which to take the transformation. If `None`, all
+        dimensions will be transformed. If the inputs are dask arrays, the
+        arrays must not be chunked along these dimensions.
+    x0 : float
+        Characteristic length scale.
+    a : float
+        Amplitude of wavelet.
+    ntheta : int
+        Number of azimuthal angles the wavelet transform is taken over.
+    wtype : str
+        Type of wavelet.
+
+    Returns
+    -------
+    dawt : `xarray.DataArray`
+        The output of the wavelet transformation, with appropriate dimensions.
+    """
+
+    if dim is None:
+        dim = list(da.dims)
+    else:
+        if isinstance(dim, str):
+            dim = [dim]
+
+    if len(dim) != 2:
+        raise ValueError("The transformed dimensions should be two-dimensional.")
+
+    sdim = s.dims[0]
+
+    # the axes along which to take wavelets
+    axis_num = [da.get_axis_num(d) for d in dim]
+
+    N = [da.shape[n] for n in axis_num]
+
+    delta_x = _delta(da, dim)
+
+    # grid parameters
+    if center:
+        y = da[da.dims[axis_num[-2]]] - da[da.dims[axis_num[-2]]].mean()
+        x = da[da.dims[axis_num[-1]]] - da[da.dims[axis_num[-1]]].mean()
+    else:
+        y = da[da.dims[axis_num[-2]]]
+        x = da[da.dims[axis_num[-1]]]
+
+    if wtype == "fourier":
+        wavelet, phi = _fourier2(x0, ntheta, a, s, y, x, **kwargs)
+    elif wtype == "sfourier":
+        wavelet, phi = _shift_fourier2(x0, ntheta, a, s, y, x, gamma, **kwargs)
+    else:
+        raise NotImplementedError("Only the Fourier is implemented for now.")
+
+    dawt = (da * np.conj(wavelet)).sum(dim, skipna=True) * np.prod(delta_x)
+    dawt = dawt.drop_vars(sdim)
+    dawt[sdim] = x0 * s
+
+    return dawt
 
 def wvlt_power_spectrum(
     da, s, dim=None, xo=50e3, a=1.0, ntheta=16, wtype="morlet", **kwargs
